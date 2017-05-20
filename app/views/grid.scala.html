@@ -8,7 +8,7 @@
     <div class="panel-body">
         <ul class="list-group">
             @for(g <- grids) {
-            <li class="list-group-item">@g.name</li>
+            <li class="list-group-item"><a href="/grids/@g.id">@g.name</a></li>
             }
         </ul>
     </div>
@@ -21,11 +21,22 @@
     </div>
     <div class="panel-body">
         @helper.form(action = routes.GridController.createGrid) {
-        <div class="input-group">
+        @if(form.hasGlobalErrors) {
+        <ul>
+            @for(error <- form.globalErrors) {
+            <li>@Messages(error.messages, error.args)</li>
+            }
+        </ul>
+        }
+        <div class="form-group">
             @helper.CSRF.formField
-            @helper.input(form("Name")) { (id, name, value, args) =>
+            @helper.input(form("name")) { (id, name, value, args) =>
             <input type="text" class="form-control" name="@name" id="@id" @toHtmlArgs(args)>
             }
+            <input type="hidden" name="id" value="0" />
+        </div>
+        <div class="input-group">
+            <button type="submit" class="btn btn-default">Submit</button>
         </div>
         }
     </div>

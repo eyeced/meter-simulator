@@ -8,6 +8,7 @@ GET     /                           controllers.HomeController.index
 
 # Grids
 GET     /grids                      controllers.GridController.listGrids
+GET     /grids/:id                  controllers.GridController.detail(id: Int)
 POST    /grids                      controllers.GridController.createGrid
 
 # Map static resources from the /public folder to the /assets URL path

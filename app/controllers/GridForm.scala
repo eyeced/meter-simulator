@@ -11,6 +11,7 @@ object GridForm {
 
   val gridForm = Form(
     mapping(
+      "id"   -> number,
       "name" -> text
     )(Grid.apply)(Grid.unapply)
   )

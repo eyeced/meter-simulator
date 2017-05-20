@@ -1,5 +1,5 @@
 package models
 
 
-case class Grid(name: String)
+case class Grid(id: Int = 0, name: String)
 
