@@ -12,7 +12,10 @@ object GridForm {
   val gridForm = Form(
     mapping(
       "id"   -> number,
-      "name" -> text
+      "name" -> text,
+      "meterType" -> text,
+      "measures" -> text,
+      "numOfMeters" -> number
     )(Grid.apply)(Grid.unapply)
   )
 }

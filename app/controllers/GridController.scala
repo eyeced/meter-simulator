@@ -6,18 +6,16 @@ import actors.GridActor
 import actors.GridActor.{CreateGrid, GetGridById, GetGrids}
 import akka.actor.ActorSystem
 import akka.pattern.ask
-
-import scala.concurrent.duration._
 import akka.util.Timeout
 import controllers.GridForm._
 import models.Grid
-import play.api.data.Form
 import play.Logger
+import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent, Controller, Request}
+import play.api.mvc.{Action, Controller}
 
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
 
 /**
   * Created by abhiso on 5/10/17.
@@ -25,8 +23,6 @@ import scala.concurrent.ExecutionContext
 class GridController @Inject()(val messagesApi: MessagesApi, system: ActorSystem)(implicit exec: ExecutionContext) extends Controller with I18nSupport  {
 
   implicit val timeout: Timeout = 5.seconds
-
-  private val grids = ArrayBuffer(Grid(name = "Grid1"), Grid(name = "Grid2"))
 
   private val postUrl = routes.GridController.createGrid
 
@@ -50,15 +46,12 @@ class GridController @Inject()(val messagesApi: MessagesApi, system: ActorSystem
   // list all grids
   def listGrids = Action.async { implicit request =>
     (gridActor ? GetGrids).mapTo[Seq[Grid]].map { implicit gridSeq =>
-      Ok(views.html.grid(gridSeq, gridForm, postUrl))
+      Ok(views.html.grid(gridSeq))
     }
   }
 
-  // if there are errors in the form then use this method
-  def listGridsWithErrors(formWithErrors: Form[Grid]) = Action.async { implicit request =>
-    (gridActor ? GetGrids).mapTo[Seq[Grid]].map { implicit gridSeq =>
-      BadRequest(views.html.grid(gridSeq, formWithErrors, postUrl))
-    }
+  def create = Action { implicit request =>
+    Ok(views.html.gridCreate(gridForm, postUrl))
   }
 
   // create a new grid
@@ -68,7 +61,7 @@ class GridController @Inject()(val messagesApi: MessagesApi, system: ActorSystem
       // Let's show the user the form again, with the errors highlighted.
       // Note how we pass the form with errors to the template.
       Logger.info("Bad request" + formWithErrors.errors)
-      BadRequest(views.html.grid(grids, formWithErrors, postUrl))
+      BadRequest(views.html.gridCreate(formWithErrors, postUrl))
     }
 
     val successFunction = { grid: Grid =>

@@ -1,11 +1,14 @@
 package actors
 
+import actors.MeterActor.CreateMeter
 import akka.actor.Actor
+import models.Meter
+
+import scala.collection.mutable.ArrayBuffer
 
 /**
   * Created by abhiso on 5/10/17.
   */
-
 object MeterActor {
   // create a meter with defined measurements and it's starting value, and it's type
   case class CreateMeter(id: Long, udcId: String, measValues: Vector[(String, Double)], meterType: String)
@@ -22,5 +25,11 @@ object MeterActor {
 }
 class MeterActor extends Actor {
 
-  override def receive: Receive = ???
+  var meters = ArrayBuffer[Meter]()
+
+  override def receive: Receive = {
+    case CreateMeter(id, udcId, measValues, meterType) =>
+      meters.append(Meter(id, udcId, measValues, meterType))
+
+  }
 }
