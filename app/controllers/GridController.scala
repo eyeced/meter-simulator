@@ -2,8 +2,8 @@ package controllers
 
 import javax.inject.Inject
 
-import actors.GridActor
-import actors.GridActor.{CreateGrid, GetGridById, GetGrids}
+import actors.GridGeneratorActor
+import actors.GridGeneratorActor.{GetGridById, GetGrids}
 import akka.actor.ActorSystem
 import akka.pattern.ask
 import akka.util.Timeout
@@ -26,7 +26,7 @@ class GridController @Inject()(val messagesApi: MessagesApi, system: ActorSystem
 
   private val postUrl = routes.GridController.createGrid
 
-  val gridActor = system.actorOf(GridActor.props, "grid-actor")
+  val gridGenActor = system.actorOf(GridGeneratorActor.props, "grid-generator")
 
   // default page for the grid controller
   def index = Action { implicit request =>
@@ -35,7 +35,7 @@ class GridController @Inject()(val messagesApi: MessagesApi, system: ActorSystem
 
   // Get the grid detail for the given id
   def detail(id: Int) = Action.async { implicit request =>
-    (gridActor ? GetGridById(id)).mapTo[Option[Grid]].map {
+    (gridGenActor ? GetGridById(id)).mapTo[Option[Grid]].map {
       case Some(g) =>
         Ok(views.html.gridDetail(g))
       case None =>
@@ -45,7 +45,7 @@ class GridController @Inject()(val messagesApi: MessagesApi, system: ActorSystem
 
   // list all grids
   def listGrids = Action.async { implicit request =>
-    (gridActor ? GetGrids).mapTo[Seq[Grid]].map { implicit gridSeq =>
+    (gridGenActor ? GetGrids).mapTo[Seq[Grid]].map { implicit gridSeq =>
       Ok(views.html.grid(gridSeq))
     }
   }
@@ -66,7 +66,7 @@ class GridController @Inject()(val messagesApi: MessagesApi, system: ActorSystem
 
     val successFunction = { grid: Grid =>
       // This is the good case, where the form was successfully parsed as a Widget.
-      gridActor ! CreateGrid(grid)
+      gridGenActor ! GridGeneratorActor.CreateGrid(grid)
       Logger.info("Creating grid")
       Redirect(routes.GridController.listGrids())
     }

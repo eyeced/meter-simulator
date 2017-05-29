@@ -14,19 +14,25 @@
             }
         </ul>
         }
-        <div class="form-group">
+        <div class="form-group" style="width:400px">
             @helper.CSRF.formField
             <div class="input-group">
                 <input type="text" class="form-control" placeholder="Grid Name" name="name" aria-describedby="sizing-addon2">
             </div>
             <div class="input-group">
-                <input type="text" class="form-control" placeholder="Measures" name="measures" aria-describedby="sizing-addon2">
+                <input type="text" width="200" class="form-control" placeholder="Measures" name="measures" aria-describedby="sizing-addon2">
+            </div>
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Initial Values" name="initialValues" aria-describedby="sizing-addon2">
             </div>
             <div class="input-group">
                 <input type="text" class="form-control" placeholder="Num Of Meters" name="numOfMeters" aria-describedby="sizing-addon2">
             </div>
             <div class="input-group">
                 <input type="text" class="form-control" placeholder="Type of Meters" name="meterType" aria-describedby="sizing-addon2">
+            </div>
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Frequency in Sec" name="frequencyInSec" aria-describedby="sizing-addon2">
             </div>
             <input type="hidden" name="id" value="0" />
         </div>
