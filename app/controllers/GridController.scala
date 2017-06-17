@@ -20,7 +20,8 @@ import scala.concurrent.duration._
 /**
   * Created by abhiso on 5/10/17.
   */
-class GridController @Inject()(val messagesApi: MessagesApi, system: ActorSystem)(implicit exec: ExecutionContext) extends Controller with I18nSupport  {
+class GridController @Inject()(val messagesApi: MessagesApi, system: ActorSystem)
+                              (implicit exec: ExecutionContext) extends Controller with I18nSupport  {
 
   implicit val timeout: Timeout = 5.seconds
 

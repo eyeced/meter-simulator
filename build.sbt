@@ -8,10 +8,13 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 scalaVersion := "2.11.11"
 
 libraryDependencies += filters
-libraryDependencies += "org.apache.kafka" % "kafka-clients" % "0.10.2.1"
-libraryDependencies += "com.fasterxml.jackson.core" % "jackson-databind" % "2.8.4"
+libraryDependencies += "com.typesafe.akka"           %% "akka-persistence"    % "2.5.2"
+libraryDependencies += "org.iq80.leveldb"             % "leveldb"             % "0.7"
+libraryDependencies += "org.fusesource.leveldbjni"    % "leveldbjni-all"      % "1.8"
+libraryDependencies += "org.apache.kafka"             % "kafka-clients"       % "0.10.2.1"
+libraryDependencies += "com.fasterxml.jackson.core"   % "jackson-databind"    % "2.8.4"
 libraryDependencies += "com.fasterxml.jackson.module" % "jackson-module-scala_2.11" % "2.8.4"
-libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.0" % Test
+libraryDependencies += "org.scalatestplus.play"      %% "scalatestplus-play"  % "2.0.0" % Test
 
 // Adds additional packages into Twirl
 //TwirlKeys.templateImports += "org.learn.controllers._"

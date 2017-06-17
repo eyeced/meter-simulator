@@ -1,8 +1,9 @@
-# Meter Simulator
-A Meter Simulator Project, which manages the Meter live. The project would use Play framework and Akka for managing these meters.
-All reads from the meters would be pushed into a Kafka topic for further management.
+# IOT Device Simulator
+A Simulator Project, which manages the live communication with an IOT device. The project would use Play framework and Akka for managing these meters.
+All reads from the devices would be pushed into a Kafka topic for further management.
 
-In this project I am going to make simulation of Meters Configurable, there would be few types of meters
+### Some examples of IOT devices
+In this project I am going to make simulation of Devices Configurable, there would be few types of meters
 * Electric
 * Gas
 * Water

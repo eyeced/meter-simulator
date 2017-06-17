@@ -3,7 +3,7 @@ package actors
 import actors.GridActor.{CreateGrid, GetGridDetails}
 import actors.MeterActor.CreateMeter
 import akka.actor.{Actor, Props}
-import models.{Grid, Meter}
+import models.{Grid, MeasValue, Meter}
 import play.api.Logger
 
 import scala.collection.mutable.ArrayBuffer
@@ -17,7 +17,9 @@ object GridActor {
   // create the grid
   case class CreateGrid(grid: Grid)
 
+  // get the grid details
   case object GetGridDetails
+
   // Get All Meters in the Grid
   case object GetMeters
   // Get Grid By Id
@@ -25,8 +27,8 @@ object GridActor {
 
 class GridActor() extends Actor {
 
+  /** placeholder for the grid this actor is working on */
   var grids = ArrayBuffer[Grid]()
-  val meters = ArrayBuffer[Meter]()
 
   override def receive: Receive = {
     case CreateGrid(grid) =>
@@ -37,16 +39,16 @@ class GridActor() extends Actor {
       val defaultValues = grid.initialValues.split(",") map (_.trim) map (_.toDouble)
 
       // get the meas value pairs for the meter
-      val measValues: Vector[(Long, Double)] = (measures zip defaultValues).toVector
+      val measValues: Seq[MeasValue] = (measures zip defaultValues).toVector map (t => MeasValue(t._1, t._2))
       Logger.info(s"default value $measValues")
 
       val createdMeters = (0 until grid.numOfMeters)
         .map(i => Meter(i.toLong, s"Meter-$i-${grid.id}", measValues, grid.meterType, grid.frequencyInSec))
 
-      meters.appendAll(createdMeters)
+      grid.meters.appendAll(createdMeters)
 
-      meters.foreach(meter => {
-        val meterActor = context.actorOf(MeterActor.props, s"meter-${meter.name}")
+      grid.meters.foreach(meter => {
+        val meterActor = context.actorOf(MeterActor.props, s"meter-${meter.id}")
         meterActor ! CreateMeter(meter)
       })
 

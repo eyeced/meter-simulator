@@ -3,11 +3,11 @@ package actors
 import java.time.Instant
 
 import actors.KafkaProducerActor.Send
-import actors.MeterActor.{CreateMeter, Publish}
+import actors.MeterActor.{CreateMeter, GetCurrentValues, Publish, SetValue}
 import akka.actor.{Actor, Props}
 import com.emeter.a2f.kafka.message.A2FKafkaMessage
 import com.emeter.cdci.data.message.{AssetDataPoint, DataPoint, MeasDataPoint}
-import models.Meter
+import models.{MeasValue, Meter}
 import play.api.Logger
 
 import scala.collection.mutable.ArrayBuffer
@@ -26,7 +26,7 @@ object MeterActor {
   // get the current value for the measurement
   case class GetCurrentValue(meas: String)
   // set the value for the meas
-  case class SetValue(meas: String, newValue: Double)
+  case class SetValue(measValue: MeasValue)
   // get all measurements for the meter
   case object GetMeasurements
   // publish all values to kafka
@@ -49,6 +49,19 @@ class MeterActor extends Actor {
       meters.append(meter)
       val start = meter.frequencyInSec - (Instant.now().getEpochSecond % meter.frequencyInSec)
       context.system.scheduler.schedule(start seconds, meter.frequencyInSec seconds, self, Publish)
+
+    case GetCurrentValues =>
+      sender ! meters(0)
+
+    case SetValue(value) =>
+      meters(0).measValues.find(mv => mv.measId == value.measId) match {
+        case None =>
+          Logger.info("Could not find any value adding to the list")
+          meters(0).measValues = value :: meters(0).measValues.toList
+        case Some(measValue) =>
+          Logger.info("found the value editing replacing it with new value")
+          meters(0).measValues = value :: meters(0).measValues.filter(mv => mv.measId != measValue.measId).toList
+      }
 
     case Publish =>
       val msg = getMessage(meters(0))
@@ -81,14 +94,14 @@ class MeterActor extends Actor {
 
     val list = new java.util.ArrayList[MeasDataPoint]()
 
-    meter.measValues.toList.foreach(tup => {
+    meter.measValues.toList.foreach(measValue => {
       val mdp = new MeasDataPoint()
-      mdp.setMeasTypeId(tup._1)
+      mdp.setMeasTypeId(measValue.measId)
 
       val dataPoints = new java.util.ArrayList[DataPoint]()
       val dp = new DataPoint()
       dp.setReadTime(java.util.Date.from(instant))
-      dp.setValue(tup._2)
+      dp.setValue(measValue.value)
       dp.setFlag(java.lang.Long.valueOf(1))
       dataPoints.add(dp)
       mdp.setDataPoints(dataPoints)

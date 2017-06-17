@@ -5,7 +5,13 @@
         <h3 class="panel-title">Grid Detail</h3>
     </div>
     <div class="panel-body">
-        @grid.name
+        <span class="label label-default">Grid Name</span> @grid.name
+        <ul class="list-group">
+            @for(meter <- grid.meters) {
+            <li class="list-group-item"><a href="/grid/@grid.id/device/@meter.id">@meter.name</li>
+            }
+        </ul>
     </div>
+
 </div>
 }
