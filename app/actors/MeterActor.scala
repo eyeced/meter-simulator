@@ -3,14 +3,14 @@ package actors
 import java.time.Instant
 
 import actors.KafkaProducerActor.Send
-import actors.MeterActor.{CreateMeter, GetCurrentValues, Publish, SetValue}
-import akka.actor.{Actor, Props}
+import actors.MeterActor._
+import akka.actor.Props
+import akka.persistence.{PersistentActor, RecoveryCompleted}
 import com.emeter.a2f.kafka.message.A2FKafkaMessage
 import com.emeter.cdci.data.message.{AssetDataPoint, DataPoint, MeasDataPoint}
 import models.{MeasValue, Meter}
 import play.api.Logger
 
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
@@ -18,55 +18,70 @@ import scala.concurrent.duration._
   * Created by abhiso on 5/10/17.
   */
 object MeterActor {
-  def props = Props[MeterActor]
+  def props(meter: Meter) = Props(new MeterActor(meter))
+
+  sealed trait Event
+  sealed trait Command
   // create a meter with defined measurements and it's starting value, and it's type
-  case class CreateMeter(meter: Meter)
+  case class CreateMeter(meter: Meter) extends Command
+  case class CreatedMeter(meter: Meter) extends Event
   // get the current values of the meter for all measurements
-  case object GetCurrentValues
+  case object GetCurrentValues extends Command
   // get the current value for the measurement
   case class GetCurrentValue(meas: String)
   // set the value for the meas
-  case class SetValue(measValue: MeasValue)
+  case class SetValue(measValue: MeasValue) extends Command
+  case class ValueChanged(measValue: MeasValue) extends Event
   // get all measurements for the meter
-  case object GetMeasurements
+  case object GetMeasurements extends Command
   // publish all values to kafka
-  case object Publish
+  case object Publish extends Command
 }
-class MeterActor extends Actor {
-
-  var meters = ArrayBuffer[Meter]()
+class MeterActor(var myMeter: Meter) extends PersistentActor {
 
   lazy val kafkaProducerActor = context.actorSelection("/user/grid-generator/kafka-producer")
 
   implicit val ec: ExecutionContext = context.dispatcher
 
-  override def receive: Receive = {
-    case CreateMeter(meter) =>
+  override def receiveRecover: Receive = {
+    case event: Event => updateState(event)
+    case RecoveryCompleted => Logger.info(s"Recovery Completed ${myMeter.name}")
+  }
+
+  override def persistenceId: String = myMeter.name
+
+  override def receiveCommand: Receive = {
+    case CreateMeter(meter) => persist(CreatedMeter(meter))(updateState)
+
+    case GetCurrentValues =>
+      sender ! myMeter
+
+    case SetValue(value) => persist(ValueChanged(value))(updateState)
+
+    case Publish =>
+      val msg = getMessage(myMeter)
+      Logger.info(s"Sending message $msg")
+      kafkaProducerActor ! Send(myMeter.id.toString, msg)
+  }
+
+
+  def updateState: Event => Unit = {
+    case CreatedMeter(meter) =>
       Logger.info(s"Creating meter ${meter.name}")
       Logger.info(s"${self.path}")
-
-      // create the message for the meter to send
-      meters.append(meter)
+      myMeter = meter
       val start = meter.frequencyInSec - (Instant.now().getEpochSecond % meter.frequencyInSec)
       context.system.scheduler.schedule(start seconds, meter.frequencyInSec seconds, self, Publish)
 
-    case GetCurrentValues =>
-      sender ! meters(0)
-
-    case SetValue(value) =>
-      meters(0).measValues.find(mv => mv.measId == value.measId) match {
+    case ValueChanged(value) =>
+      myMeter.measValues.find(mv => mv.measId == value.measId) match {
         case None =>
           Logger.info("Could not find any value adding to the list")
-          meters(0).measValues = value :: meters(0).measValues.toList
+          myMeter.measValues = value :: myMeter.measValues.toList
         case Some(measValue) =>
           Logger.info("found the value editing replacing it with new value")
-          meters(0).measValues = value :: meters(0).measValues.filter(mv => mv.measId != measValue.measId).toList
+          myMeter.measValues = value :: myMeter.measValues.filter(mv => mv.measId != measValue.measId).toList
       }
-
-    case Publish =>
-      val msg = getMessage(meters(0))
-      Logger.info(s"Sending message $msg")
-      kafkaProducerActor ! Send(meters(0).id.toString, msg)
   }
 
   /**

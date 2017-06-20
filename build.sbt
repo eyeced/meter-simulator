@@ -16,6 +16,9 @@ libraryDependencies += "com.fasterxml.jackson.core"   % "jackson-databind"    % 
 libraryDependencies += "com.fasterxml.jackson.module" % "jackson-module-scala_2.11" % "2.8.4"
 libraryDependencies += "org.scalatestplus.play"      %% "scalatestplus-play"  % "2.0.0" % Test
 
+parallelExecution in Test := false
+
+fork := true
 // Adds additional packages into Twirl
 //TwirlKeys.templateImports += "org.learn.controllers._"
 

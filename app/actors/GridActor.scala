@@ -1,8 +1,9 @@
 package actors
 
-import actors.GridActor.{CreateGrid, GetGridDetails}
+import actors.GridActor.{CreateGrid, CreatedGrid, Event, GetGridDetails}
 import actors.MeterActor.CreateMeter
 import akka.actor.{Actor, Props}
+import akka.persistence.{PersistentActor, RecoveryCompleted}
 import models.{Grid, MeasValue, Meter}
 import play.api.Logger
 
@@ -13,9 +14,14 @@ import scala.collection.mutable.ArrayBuffer
   */
 object GridActor {
 
-  def props = Props[GridActor]
+  def props(gridId: String, grid: Grid) = Props(new GridActor(gridId, grid))
+
+  sealed trait Command
   // create the grid
-  case class CreateGrid(grid: Grid)
+  case class CreateGrid(grid: Grid) extends Command
+
+  sealed trait Event
+  case class CreatedGrid(grid: Grid) extends Event
 
   // get the grid details
   case object GetGridDetails
@@ -25,15 +31,20 @@ object GridActor {
   // Get Grid By Id
 }
 
-class GridActor() extends Actor {
+class GridActor(gridId: String, var myGrid: Grid) extends PersistentActor {
 
-  /** placeholder for the grid this actor is working on */
-  var grids = ArrayBuffer[Grid]()
+  override def receiveRecover: Receive = {
+    case event: Event => updateState(event)
+    case RecoveryCompleted =>
+      Logger.info(s"Recovery Complete $myGrid")
+  }
 
-  override def receive: Receive = {
+  override def receiveCommand: Receive = {
     case CreateGrid(grid) =>
-      grids += grid
+
       Logger.info(s"Creating new ${grid}")
+
+      persist(CreatedGrid(grid))(updateState)
 
       val measures = grid.measures.split(",") map (_.trim) map (_.toLong)
       val defaultValues = grid.initialValues.split(",") map (_.trim) map (_.toDouble)
@@ -48,11 +59,17 @@ class GridActor() extends Actor {
       grid.meters.appendAll(createdMeters)
 
       grid.meters.foreach(meter => {
-        val meterActor = context.actorOf(MeterActor.props, s"meter-${meter.id}")
+        val meterActor = context.actorOf(MeterActor.props(meter), s"meter-${meter.id}")
         meterActor ! CreateMeter(meter)
       })
 
     case GetGridDetails =>
-      sender ! grids(0)
+      sender ! myGrid
+  }
+
+  override def persistenceId: String = gridId
+
+  def updateState: Event => Unit = {
+    case CreatedGrid(grid) => myGrid = grid
   }
 }
