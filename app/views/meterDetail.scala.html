@@ -9,6 +9,8 @@
         <ul class="list-group">
             <li class="list-group-item"> <span class="label label-default">Meter Name</span> @meter.name </li>
             <li class="list-group-item"> <span class="label label-default">Meter Type</span> @meter.meterType </li>
+            <li class="list-group-item">
+            </li>
             @for(measValue <- meter.measValues) {
             <div class="input-group">
                 <input type="hidden" name="measId" value="@measValue.measId">
@@ -19,6 +21,10 @@
             </div>
             }
         </ul>
+
+        <button type="button" class="btn btn-default">
+            <a href="/meter/@meter.id/charts">Chart</a>
+        </button>
     </div>
 </div>
 <script type='text/javascript'>

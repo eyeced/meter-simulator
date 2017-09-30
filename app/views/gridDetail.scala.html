@@ -6,6 +6,12 @@
     </div>
     <div class="panel-body">
         <span class="label label-default">Grid Name</span> @grid.name
+        &nbsp;
+        <button type="button" class="btn btn-default">
+            <a href="/grid/@grid.id/charts">Chart</a>
+        </button>
+        <br/>
+        <br/>
         <ul class="list-group">
             @for(meter <- grid.meters) {
             <li class="list-group-item"><a href="/grid/@grid.id/device/@meter.id">@meter.name</li>

@@ -6,6 +6,7 @@ import actors.MeterActor
 import actors.MeterActor.{GetCurrentValues, SetValue}
 import akka.actor.ActorSystem
 import akka.pattern.ask
+import akka.stream.scaladsl.{Flow, Sink}
 import akka.util.Timeout
 import controllers.MeasValueForm.measValueForm
 import models.{MeasValue, Meter}
@@ -13,16 +14,18 @@ import play.Logger
 import play.api.data.Form
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.libs.json._
-import play.api.mvc.{Action, Controller}
+import play.api.mvc.{Action, Controller, WebSocket}
 import play.api.libs.functional.syntax._
+import services.Kafka
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 /**
   * Created by abhiso on 5/29/17.
   */
-class MeterController @Inject()(val messagesApi: MessagesApi, system: ActorSystem)
+class MeterController @Inject()(val messagesApi: MessagesApi, system: ActorSystem, kafka: Kafka)
                                 (implicit exec: ExecutionContext) extends Controller with I18nSupport {
 
   implicit val timeout: Timeout = 5.seconds
@@ -137,6 +140,27 @@ class MeterController @Inject()(val messagesApi: MessagesApi, system: ActorSyste
 
     val formValidationResult = measValueForm.bindFromRequest
     formValidationResult.fold(errorFunction, successFunction)
+  }
+
+  /**
+    * @return the kafka web socket which reads data from topic meter data
+    */
+  def kafkaWs(key: Int, topic: String) = WebSocket.acceptOrResult[Any, String] { _ =>
+    kafka.source(topic) match {
+      case Failure(e) =>
+        Future.successful(Left(InternalServerError("Could not connect to Kafka")))
+      case Success(source) =>
+        val flow = Flow.fromSinkAndSource(Sink.ignore, source.filter(_.key.toInt == key).map(_.value))
+        Future.successful(Right(flow))
+    }
+  }
+
+  def chart(gridId: Int) = Action {
+    Ok(views.html.charts(gridId, "Grid Aggregated Data", s"Aggregate Data For Grid $gridId", s"chart/$gridId/kafka/grid-data"))
+  }
+
+  def meterChart(meterId: Int) = Action {
+    Ok(views.html.charts(meterId, "Meter Data", s"Data For Meter $meterId", s"chart/$meterId/kafka/meter-data"))
   }
 
 }

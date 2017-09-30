@@ -44,7 +44,8 @@ class GridGeneratorActor extends Actor {
       Logger.info(s"grid id ${counter}")
 
       val newGrid = Grid(counter, grid.name, grid.meterType, grid.measures, grid.numOfMeters, grid.frequencyInSec, grid.initialValues)
-      val gridActor = context.actorOf(GridActor.props(s"grid-${counter}", newGrid), s"grid-${counter}")
+      val initialSum = grid.initialValues.toDouble * grid.numOfMeters
+      val gridActor = context.actorOf(GridActor.props(s"grid-${counter}", newGrid, initialSum), s"grid-${counter}")
       Logger.info(s"Created grid actor $gridActor")
 
       gridActor ! GridActor.CreateGrid(newGrid)

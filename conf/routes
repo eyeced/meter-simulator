@@ -15,7 +15,10 @@ POST    /grids/create               controllers.GridController.createGrid
 # Device
 GET     /grid/:gridId/device/:id    controllers.MeterController.detail(gridId: Int, id: Long)
 GET     /grid/:gridId/meter/:id     controllers.MeterController.index(gridId: Int, id: Long)
-POST    /grid/:gridId/meter/:id    controllers.MeterController.editMeasValue(gridId: Int, id: Long)
+POST    /grid/:gridId/meter/:id     controllers.MeterController.editMeasValue(gridId: Int, id: Long)
+GET     /grid/:gridId/charts        controllers.MeterController.chart(gridId: Int)
+GET     /meter/:meterId/charts      controllers.MeterController.meterChart(meterId: Int)
+GET     /chart/:key/kafka/:topic    controllers.MeterController.kafkaWs(key: Int, topic: String)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)

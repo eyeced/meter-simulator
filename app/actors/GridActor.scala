@@ -1,20 +1,24 @@
 package actors
 
-import actors.GridActor.{CreateGrid, CreatedGrid, Event, GetGridDetails}
+import java.time.Instant
+
+import actors.GridActor._
+import actors.KafkaProducerActor.SendToTopic
 import actors.MeterActor.CreateMeter
-import akka.actor.{Actor, Props}
+import akka.actor.Props
 import akka.persistence.{PersistentActor, RecoveryCompleted}
 import models.{Grid, MeasValue, Meter}
 import play.api.Logger
 
-import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
 
 /**
   * Created by abhiso on 5/10/17.
   */
 object GridActor {
 
-  def props(gridId: String, grid: Grid) = Props(new GridActor(gridId, grid))
+  def props(gridId: String, grid: Grid, initialSum: Double) = Props(new GridActor(gridId, grid, initialSum))
 
   sealed trait Command
   // create the grid
@@ -29,9 +33,19 @@ object GridActor {
   // Get All Meters in the Grid
   case object GetMeters
   // Get Grid By Id
+
+  case class Add(measValue: MeasValue)
+
+  case class Obj(timestamp: Long, value: Double)
+
+  case object Publish
 }
 
-class GridActor(gridId: String, var myGrid: Grid) extends PersistentActor {
+class GridActor(gridId: String, var myGrid: Grid, var sum: Double) extends PersistentActor {
+
+  lazy val kafkaProducerActor = context.actorSelection("/user/grid-generator/kafka-producer")
+
+  implicit val ec: ExecutionContext = context.dispatcher
 
   override def receiveRecover: Receive = {
     case event: Event => updateState(event)
@@ -44,7 +58,7 @@ class GridActor(gridId: String, var myGrid: Grid) extends PersistentActor {
 
       Logger.info(s"Creating new ${grid}")
 
-      persist(CreatedGrid(grid))(updateState)
+//      persist(CreatedGrid(grid))(updateState)
 
       val measures = grid.measures.split(",") map (_.trim) map (_.toLong)
       val defaultValues = grid.initialValues.split(",") map (_.trim) map (_.toDouble)
@@ -54,7 +68,7 @@ class GridActor(gridId: String, var myGrid: Grid) extends PersistentActor {
       Logger.info(s"default value $measValues")
 
       val createdMeters = (0 until grid.numOfMeters)
-        .map(i => Meter(i.toLong, s"Meter-$i-${grid.id}", measValues, grid.meterType, grid.frequencyInSec))
+        .map(i => Meter(i.toLong, s"Meter-$i-${grid.id}", measValues, grid.meterType, grid.frequencyInSec, grid.id))
 
       grid.meters.appendAll(createdMeters)
 
@@ -63,8 +77,20 @@ class GridActor(gridId: String, var myGrid: Grid) extends PersistentActor {
         meterActor ! CreateMeter(meter)
       })
 
+      context.system.scheduler.schedule(0 seconds, 10 seconds, self, Publish)
+
     case GetGridDetails =>
       sender ! myGrid
+
+    case Add(measValue) =>
+
+      Logger.info(s"Adding to the sum $sum value $measValue from ${sender.toString()}")
+      sum = sum + measValue.value
+      self ! Publish
+
+    case Publish =>
+      kafkaProducerActor ! SendToTopic("grid-data", myGrid.id.toString, Obj(Instant.now().toEpochMilli, sum))
+
   }
 
   override def persistenceId: String = gridId

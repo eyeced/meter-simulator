@@ -2,7 +2,8 @@ package actors
 
 import java.time.Instant
 
-import actors.KafkaProducerActor.Send
+import actors.GridActor.{Add, Obj}
+import actors.KafkaProducerActor.SendToTopic
 import actors.MeterActor._
 import akka.actor.Props
 import akka.persistence.{PersistentActor, RecoveryCompleted}
@@ -41,6 +42,8 @@ class MeterActor(var myMeter: Meter) extends PersistentActor {
 
   lazy val kafkaProducerActor = context.actorSelection("/user/grid-generator/kafka-producer")
 
+  lazy val gridActor = context.actorSelection(s"/user/grid-generator/grid-${myMeter.gridId}")
+
   implicit val ec: ExecutionContext = context.dispatcher
 
   override def receiveRecover: Receive = {
@@ -51,37 +54,45 @@ class MeterActor(var myMeter: Meter) extends PersistentActor {
   override def persistenceId: String = myMeter.name
 
   override def receiveCommand: Receive = {
-    case CreateMeter(meter) => persist(CreatedMeter(meter))(updateState)
-
-    case GetCurrentValues =>
-      sender ! myMeter
-
-    case SetValue(value) => persist(ValueChanged(value))(updateState)
-
-    case Publish =>
-      val msg = getMessage(myMeter)
-      Logger.info(s"Sending message $msg")
-      kafkaProducerActor ! Send(myMeter.id.toString, msg)
-  }
-
-
-  def updateState: Event => Unit = {
-    case CreatedMeter(meter) =>
+    case CreateMeter(meter) =>
       Logger.info(s"Creating meter ${meter.name}")
       Logger.info(s"${self.path}")
       myMeter = meter
       val start = meter.frequencyInSec - (Instant.now().getEpochSecond % meter.frequencyInSec)
       context.system.scheduler.schedule(start seconds, meter.frequencyInSec seconds, self, Publish)
 
-    case ValueChanged(value) =>
+    case GetCurrentValues =>
+      sender ! myMeter
+
+    case SetValue(value) =>
       myMeter.measValues.find(mv => mv.measId == value.measId) match {
         case None =>
           Logger.info("Could not find any value adding to the list")
           myMeter.measValues = value :: myMeter.measValues.toList
+          sendToKafka
         case Some(measValue) =>
           Logger.info("found the value editing replacing it with new value")
+          val change = value.value - measValue.value
+          gridActor ! Add(MeasValue(value.measId, change))
           myMeter.measValues = value :: myMeter.measValues.filter(mv => mv.measId != measValue.measId).toList
+          sendToKafka
       }
+
+    case Publish =>
+      val msg = getMessage(myMeter)
+      Logger.info(s"Sending message $msg")
+      sendToKafka
+  }
+
+  def sendToKafka: Unit = {
+    val curVal = myMeter.measValues.head.value
+    kafkaProducerActor ! SendToTopic("meter-data", myMeter.id.toString, Obj(Instant.now().toEpochMilli, curVal))
+  }
+
+  def updateState: Event => Unit = {
+    case CreatedMeter(meter) =>
+
+    case ValueChanged(value) =>
   }
 
   /**
@@ -92,7 +103,7 @@ class MeterActor(var myMeter: Meter) extends PersistentActor {
   def getMessage(meter: Meter): A2FKafkaMessage = {
     val epochSec = Instant.now().getEpochSecond - (Instant.now().getEpochSecond % meter.frequencyInSec)
 
-    val adp = getAssetDataPoint(meter.id, Instant.ofEpochSecond(epochSec), meter)
+    val adp = getAssetDataPoint(meter.id, Instant.ofEpochSecond(epochSec), meter, meter.gridId)
     new A2FKafkaMessage(java.lang.Long.valueOf(1), adp)
   }
 
@@ -102,10 +113,11 @@ class MeterActor(var myMeter: Meter) extends PersistentActor {
     * @param instant for instant
     * @return asset data point
     */
-  def getAssetDataPoint(svcPtId: java.lang.Long, instant: Instant, meter: Meter): AssetDataPoint = {
+  def getAssetDataPoint(svcPtId: java.lang.Long, instant: Instant, meter: Meter, gridId: java.lang.Long): AssetDataPoint = {
     val adp = new AssetDataPoint()
     adp.setAssetId(svcPtId)
     adp.setAssetType("SVC_PT")
+    adp.setGridId(gridId)
 
     val list = new java.util.ArrayList[MeasDataPoint]()
 

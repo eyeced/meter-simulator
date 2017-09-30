@@ -6,72 +6,92 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
-
 @XmlRootElement
 @JsonTypeInfo(
-	    use = JsonTypeInfo.Id.NAME,
-	    include = JsonTypeInfo.As.PROPERTY,
-	    property = "type") 
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
+    property = "type")
 public class AssetDataPoint extends CdciMessage {
-	
-private Long assetId;
 
-private String assetType;
+    private Long assetId;
 
-private List<MeasDataPoint> reads;
+    private Long gridId;
 
-private Long rtuId;
-private Long paId;
+    private String assetType;
 
+    private List<MeasDataPoint> reads;
 
-@Override
-public String toString() {
-	return "AssetDataPoint [assetId=" + assetId + ", assetType=" + assetType
-			+ ", reads=" + reads + ", rtuId=" + rtuId + ", paId=" + paId + "]";
-}
-@JsonIgnore
-public String getKey(){
-	return String.valueOf(assetId);
-}
+    private Long rtuId;
+    private Long paId;
 
-public Long getAssetId() {
-	return assetId;
-}
+    @Override
+    public String toString() {
+        return "AssetDataPoint [assetId=" + assetId + ", assetType=" + assetType
+            + ", reads=" + reads + ", rtuId=" + rtuId + ", paId=" + paId + ", gridId=" + gridId + "]";
+    }
 
-public void setAssetId(Long assetId) {
-	this.assetId = assetId;
-}
+    @JsonIgnore
+    public String getKey()
+    {
+        return String.valueOf(assetId);
+    }
 
-public String getAssetType() {
-	return assetType;
-}
+    public Long getAssetId()
+    {
+        return assetId;
+    }
 
-public void setAssetType(String assetType) {
-	this.assetType = assetType;
-}
+    public void setAssetId(Long assetId)
+    {
+        this.assetId = assetId;
+    }
 
-public List<MeasDataPoint> getReads() {
-	return reads;
-}
+    public String getAssetType()
+    {
+        return assetType;
+    }
 
-public void setReads(List<MeasDataPoint> lmdp) {
-	this.reads = lmdp;
-}
+    public void setAssetType(String assetType)
+    {
+        this.assetType = assetType;
+    }
 
-public Long getRtuId() {
-	return rtuId;
-}
+    public List<MeasDataPoint> getReads()
+    {
+        return reads;
+    }
 
-public void setRtuId(Long rtuId) {
-	this.rtuId = rtuId;
-}
+    public void setReads(List<MeasDataPoint> lmdp)
+    {
+        this.reads = lmdp;
+    }
 
-public Long getPaId() {
-	return paId;
-}
+    public Long getRtuId()
+    {
+        return rtuId;
+    }
 
-public void setPaId(Long paId) {
-	this.paId = paId;
-}
+    public void setRtuId(Long rtuId)
+    {
+        this.rtuId = rtuId;
+    }
+
+    public Long getPaId()
+    {
+        return paId;
+    }
+
+    public Long getGridId() {
+        return gridId;
+    }
+
+    public void setGridId(Long gridId) {
+        this.gridId = gridId;
+    }
+
+    public void setPaId(Long paId)
+    {
+        this.paId = paId;
+    }
 
 }

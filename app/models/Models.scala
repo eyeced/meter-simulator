@@ -10,7 +10,7 @@ case class Grid(id: Int = 0, name: String, meterType: String,
 }
 
 case class Meter(id: Long, name: String, var measValues: Seq[MeasValue],
-                 meterType: String, frequencyInSec: Int)
+                 meterType: String, frequencyInSec: Int, gridId: Long)
 
 case class MeasValue(measId: Long, var value: Double)
 

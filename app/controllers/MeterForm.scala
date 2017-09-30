@@ -21,6 +21,7 @@ val meterForm = Form(
         )(MeasValue.apply)(MeasValue.unapply)
       ),
       "meterType"       -> text,
-      "frequencyInSec"  -> number
+      "frequencyInSec"  -> number,
+      "gridId"          -> longNumber
     )(Meter.apply)(Meter.unapply)
   )}
