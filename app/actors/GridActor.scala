@@ -77,7 +77,7 @@ class GridActor(gridId: String, var myGrid: Grid, var sum: Double) extends Persi
         meterActor ! CreateMeter(meter)
       })
 
-      context.system.scheduler.schedule(0 seconds, 10 seconds, self, Publish)
+      context.system.scheduler.schedule(0 seconds, 300 seconds, self, Publish)
 
     case GetGridDetails =>
       sender ! myGrid

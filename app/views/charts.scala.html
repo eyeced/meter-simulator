@@ -6,7 +6,7 @@
 *@
 @main("Welcome to Play") {
 <div id="output" class="starter-template">
-    <h2>Meter Data Aggregate</h2>
+    <h2>Real Time Aggregation</h2>
     <div class="row">
         <div class="col-md-12">
             <div class="panel panel-info">
@@ -80,7 +80,7 @@ $(document).ready(function() {
         }]
     });
 
-    var wsUri = "ws://localhost:9000/@url"
+    var wsUri = "ws://lnxapp121.emeter.com:9000/@url"
     var output = document.getElementById("output");
 
     function testWebSocket() {
